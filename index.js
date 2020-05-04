@@ -1,6 +1,6 @@
 import linebot from 'linebot'
 import dotenv from 'dotenv'
-// import rp from 'request-promise'
+import rp from 'request-promise'
 
 dotenv.config()
 
@@ -10,12 +10,17 @@ const bot = linebot({
   channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN
 })
 
-bot.on('message', event => {
-  if (event.message.type === 'text') {
-    // clg 的內容會顯示在terminal
-    console.log(event)
-    event.reply(event.message.text)
+bot.on('message', async (event) => {
+  let msg = ''
+  try {
+    const data = await rp({ uri: 'https://recreation.forest.gov.tw/mis/api/BasicInfo/Trail', json: true })
+    for (const d of data) {
+      msg += `${d.TRAILID}：${d.TR_CNAME}\n`
+    }
+  } catch (error) {
+    msg = '發生錯誤'
   }
+  event.reply(msg)
 })
 
 bot.listen('/', process.env.PORT, () => {
