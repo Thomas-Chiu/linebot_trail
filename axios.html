@@ -1,12 +1,47 @@
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
-  // const getData =async ()=> {
-
-  // }
 
   axios.get(`https://recreation.forest.gov.tw/mis/api/BasicInfo/Trail`)
     .then(response => {
       console.log(response);
+
+      // 宣告一個過濾的函式
+      const filter = (str) => {
+        // 空陣列 (建立容器儲存filter 回傳的東西)
+        let result = []
+        // for of 跑API.data 的json 資料
+        for (let f of response.data) {
+          // 因為有幾筆資料的position 是空值，所以要跳過，不然程式會抓不到
+          if (f.TR_POSITION == null) {
+            continue;
+          }
+          // 過濾出position 包含str 關鍵字的資料，整包json push 到result 陣列
+          else if (f.TR_POSITION.includes(str)) {
+            result.push(f)
+          }
+        }
+        // 回傳陣列
+        return result
+      }
+
+      // 因為要控制回傳的資料，所以定義filterData = 回傳的陣列，後面再選擇要印出filterData 的哪些東西
+      let filterData = filter('宜蘭')
+
+      console.log(`
+      名稱：${filterData[0].TR_CNAME}\n
+      位置：${filterData[0].TR_POSITION}\n
+      簡介：${filterData[0].GUIDE_CONTENT}\n
+      網址：${filterData[0].URL}\n
+      入口：${filterData[0].TR_ENTRANCE[0].memo}\n
+      全長：${filterData[0].TR_LENGTH}\n
+      最高海拔：${filterData[0].TR_ALT}\n
+      最低海拔：${filterData[0].TR_ALT_LOW}\n
+      路程規劃：${filterData[0].TR_TOUR}\n
+      管理單位：${filterData[0].TR_ADMIN}\n
+      洽詢電話：${filterData[0].TR_ADMIN_PHONE}\n
+      最佳造訪期：${filterData[0].TR_BEST_SEASON}\n
+      `);
+
     })
     .catch(err => {
       console.log(err.message);
