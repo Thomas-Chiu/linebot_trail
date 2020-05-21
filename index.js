@@ -30,41 +30,129 @@ const filter = (str, data) => {
   return result
 }
 
-// 機器人要做的(函式)事情
 bot.on('message', async (event) => {
-  // 多一行判斷，若使用者輸入非文字，不執行函式
-  if (event.message.type !== 'text') return
+  // 若使用者輸入非文字，不執行函式
   let msg = ''
-  let filternum = 0
   console.log(event.message.text)
+  if (event.message.type !== 'text') return
   try {
     // 從API 取資料
     const data = await rp({ uri: 'https://recreation.forest.gov.tw/mis/api/BasicInfo/Trail', json: true })
     // 因為要控制回傳的資料，所以定義filterData = 回傳的陣列，後面再選擇要印出filterData 的哪些東西
     // !!! 注意 !!! 使用者查詢要輸入「臺」北、中、南、東，不能用「台」
     const filterData = filter(event.message.text, data)
-    console.log(filterData.length)
-    // while (filternum > filterData.length) {
     if (filterData.length > 0) {
       msg = `
     ${event.message.text}有${filterData.length}條路線\n
-    名稱：${filterData[filternum].TR_CNAME}\n
-    位置：${filterData[filternum].TR_POSITION}\n
-    簡介：${filterData[filternum].GUIDE_CONTENT}\n
-    網址：${filterData[filternum].URL}\n
-    入口：${filterData[filternum].TR_ENTRANCE[0].memo}\n
-    全長：${filterData[filternum].TR_LENGTH}\n
-    海拔：${filterData[filternum].TR_ALT_LOW}～${filterData[filternum].TR_ALT}\n
-    路程規劃：${filterData[filternum].TR_TOUR}\n
-    管理單位：${filterData[filternum].TR_ADMIN}\n
-    洽詢電話：${filterData[filternum].TR_ADMIN_PHONE}\n
-    最佳造訪期：${filterData[filternum].TR_BEST_SEASON}\n
+    名稱：${filterData[0].TR_CNAME}\n
+    位置：${filterData[0].TR_POSITION}\n
+    簡介：${filterData[0].GUIDE_CONTENT}\n
+    網址：${filterData[0].URL}\n
+    入口：${filterData[0].TR_ENTRANCE[0].memo}\n
+    全長：${filterData[0].TR_LENGTH}\n
+    海拔：${filterData[0].TR_ALT_LOW}～${filterData[0].TR_ALT}\n
+    路程規劃：${filterData[0].TR_TOUR}\n
+    管理單位：${filterData[0].TR_ADMIN}\n
+    洽詢電話：${filterData[0].TR_ADMIN_PHONE}\n
+    最佳造訪期：${filterData[0].TR_BEST_SEASON}\n
     `
-      filternum++
       console.log('成功抓到!')
-      console.log(filternum)
     }
-    // }
+    if (event.message.text === 'hi') {
+      msg = {
+        type: 'location',
+        title: '南澳古道',
+        address: '南澳南溪產業道路11公里處',
+        latitude: 24.4296390405548,
+        longitude: 121.691964454609
+      }
+    }
+    if (event.message.text === 'hey') {
+      msg = {
+        type: 'template',
+        altText: '在不支援顯示樣板的地方顯示的文字',
+        template: {
+          // confirm 只能使用兩個action
+          type: 'confirm',
+          text: '標題文字',
+          actions: [
+            {
+              type: 'message',
+              label: '第一個按鈕',
+              text: '1'
+            },
+            {
+              type: 'message',
+              label: '第二個按鈕',
+              text: '2'
+            }
+          ]
+        }
+      }
+    }
+    if (event.message.text === 'ha') {
+      msg = {
+        type: 'template',
+        altText: '在不支援顯示樣板的地方顯示的文字',
+        template: {
+          type: 'carousel',
+          columns: [
+            {
+              text: '第一組標題',
+              actions: [
+                {
+                  type: 'message',
+                  label: '第一個按鈕',
+                  text: '1'
+                }
+              ]
+            },
+            {
+              text: '第二組標題',
+              actions: [
+                {
+                  type: 'message',
+                  label: '第一個按鈕',
+                  text: '1'
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+    if (event.message.text === 'he') {
+      msg = {
+        type: 'template',
+        altText: '在不支援顯示樣板的地方顯示的文字',
+        template: {
+          type: 'buttons',
+          text: '標題文字',
+          actions: [
+            {
+              type: 'message',
+              label: '第一個按鈕',
+              text: '1'
+            },
+            {
+              type: 'message',
+              label: '第二個按鈕',
+              text: '2'
+            },
+            {
+              type: 'message',
+              label: '第三個按鈕',
+              text: '3'
+            },
+            {
+              type: 'message',
+              label: '第四個按鈕',
+              text: '4'
+            }
+          ]
+        }
+      }
+    }
   } catch (error) {
     msg = '發生錯誤'
   }
