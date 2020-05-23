@@ -4,156 +4,122 @@ import rp from 'request-promise'
 import proj4 from 'proj4'
 // ngrok authtoken 1b9lrgl1tsqi7SVmgWFH1CIjONc_7W9qky1kaudPv1r36PdBG
 // ngrok http 8080
+// p.s.使用者查詢要輸入「臺」北、中、南、東，不能用「台」
 
-// 啟用dotenv 套件
-dotenv.config()
-// 宣告bot 資訊
-const bot = linebot({
+dotenv.config() // 啟用dotenv (讀取.env 檔)
+const bot = linebot({ // 宣告bot 資訊
   channelId: process.env.CHANNEL_ID,
   channelSecret: process.env.CHANNEL_SECRET,
   channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN
 })
 
-// 定義proj4 參數 (內容包含大地框架、橢球、投影等)，是根據這些參數轉換座標
-proj4.defs([
+proj4.defs([ // 定義proj4 參數 (內容包含大地框架、橢球、投影等)，是根據這些參數轉換座標
   ['EPSG:4326',
     '+title=WGS 84 (long/lat) +proj=longlat +ellps=WGS84 +datum=WGS84 +units=degrees'],
   ['EPSG:3826',
     '+title=TWD97 TM2+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +units=公尺 +no_defs']
 ])
 
-// TWD97 轉 WGS84 (經緯度)
+// 宣告TWD97 轉 WGS84(經緯度) 函式
 const EPSG4326 = new proj4.Proj('EPSG:4326')// WGS84
 const EPSG3826 = new proj4.Proj('EPSG:3826')// TWD97
 const testing = proj4(EPSG3826, EPSG4326, [231656.0, 2601972])
-console.log(testing)
-// [250000,2544283.12479424] => [121, 23]
+console.log(testing) // [250000,2544283.12479424] => [121, 23]
 
 // 宣告filter 函式
 const filter = (str, data) => {
-  // 空陣列儲存filter 的東西)
-  const result = []
-  // for of 跑API.data 的json 資料
-  for (const d of data) {
-    // 因為有幾筆資料的position 是空值，所以要跳過，不然程式會抓不到
-    // 若if () 後面只有一行，可不用加大括號 {}
-    if (d.TR_POSITION == null) continue
-    // 過濾出position 包含str 關鍵字的資料，整包json push 到result 陣列
+  const result = [] // result 儲存filter 的東西
+  for (const d of data) { // for of 跑API.data 的json 資料
+    if (d.TR_POSITION == null) continue // 空值要跳過，不然程式會抓不到；若if () 後面只有一行，可不用加大括號 {}
     else if (d.TR_POSITION.includes(str)) {
+      result.push(d) // 篩出position 包含str 的資料，整包json push 到result 陣列
+    } else if (d.TR_CNAME.includes(str)) {
       result.push(d)
     }
-  }
-  return result
+  } return result
 }
 
-// bot 執行
+// imgUrl 陣列
+const imgUrl = []
+for (let i = 1; i <= 9; i++) {
+  imgUrl.push(`https://recreation.forest.gov.tw/Files/RT/index/00${i}.jpg`)
+}
+for (let i = 10; i <= 99; i++) {
+  imgUrl.push(`https://recreation.forest.gov.tw/Files/RT/index/0${i}.jpg`)
+}
+for (let i = 100; i <= 212; i++) {
+  imgUrl.push(`https://recreation.forest.gov.tw/Files/RT/index/${i}.jpg`)
+} console.log(imgUrl[211]) // 這是imgUrl 陣列最後一張
+
+// 當使用者輸入訊息
 bot.on('message', async (event) => {
-  // 若使用者輸入非文字，不執行函式
-  let msg = ''
+  let msg = []
+  const data = await rp({ uri: 'https://recreation.forest.gov.tw/mis/api/BasicInfo/Trail', json: true }) // 從API 取資料
+  const filterData = filter(event.message.text, data) // filterData = filter 後的陣列，再選擇要印出filterData 的哪些東西
   console.log(event.message.text)
-  if (event.message.type !== 'text') return
   try {
-    // 從API 取資料
-    const data = await rp({ uri: 'https://recreation.forest.gov.tw/mis/api/BasicInfo/Trail', json: true })
-    // 因為要控制回傳的資料，所以定義filterData = 回傳的陣列，後面再選擇要印出filterData 的哪些東西；使用者查詢要輸入「臺」北、中、南、東，不能用「台」
-    const filterData = filter(event.message.text, data)
-    if (filterData.length > 0) {
+    // if (event.message.type !== 'text') return  若使用者輸入非文字，不執行函式
+    if (isNaN === true) msg = '請輸入關鍵字查詢喔' // 若使用者傳符號或數字
+    if (event.message.type !== 'text') { // 若使用者傳貼圖
+      msg = {
+        type: 'sticker',
+        packageId: '1',
+        stickerId: Math.round(Math.random() * 17) // 目前貼圖可使用1~ 17
+      }
+    }
+    if (event.message.type === 'text') {
       for (const f of filterData) {
-        // carouesl 模板，最多可以放10 個column，column 的actions 數量必須相同，label(按鈕) 最多只能放 3 個
-        const convert = proj4(EPSG3826, EPSG4326, [f.TR_ENTRANCE[0].x, f.TR_ENTRANCE[0].y])
-
-        const column = {
-          text: `${f.TR_POSITION}－${f.TR_CNAME}`,
-          actions: [{
-            type: 'message',
-            label: '點我看簡介',
-            text: `入口：${f.TR_ENTRANCE[0].memo}\n全長：${f.TR_LENGTH}\n路況：${f.TR_PAVE}\n海拔：${f.TR_ALT_LOW}～${f.TR_ALT}\n路程規劃：${f.TR_TOUR}\n管理單位：${f.TR_ADMIN}\n洽詢電話：${f.TR_ADMIN_PHONE}\n最佳造訪期：${f.TR_BEST_SEASON}\n`
-          }, {
-            type: 'message',
-            label: '點我看位置',
-            text: `經度：${convert[0]}\n緯度：${convert[1]}`
-            // text: `${f.TR_ENTRANCE[0].x}, ${f.TR_ENTRANCE[0].y}`
-          }, {
-            type: 'message',
-            label: '點我看連結',
-            text: f.URL
-          }]
-        }
-
-        msg = {
+        if (f.TR_ENTRANCE[0].x === null || f.TR_ENTRANCE[0].y === null) continue // 跳過空值
+        const convert = proj4(EPSG3826, EPSG4326, [f.TR_ENTRANCE[0].x, f.TR_ENTRANCE[0].y]) // 座標轉換
+        msg.push({ // for of 跑filterData 陣列，再push 進msg 陣列
           type: 'template',
           altText: 'sorry 只能在手機上看到喔',
-          template: {
+          template: { // carouesl 模板，最多放10(or 5?) 個column，column 的actions 數量必須相同，最多放3 個
             type: 'carousel',
-            columns: [column]
+            imageAspectRatio: 'rectangle',
+            imageSize: 'contain',
+            columns: [{
+              thumbnailImageUrl: imgUrl[f.TRAILID - 1],
+              title: f.TR_CNAME,
+              text: f.TR_POSITION,
+              actions: [{
+                type: 'message',
+                label: '點我看簡介',
+                text: `－${f.TR_CNAME}－\n\n入口：${f.TR_ENTRANCE[0].memo}\n全長：${f.TR_LENGTH}\n路況：${f.TR_PAVE}\n海拔：${f.TR_ALT_LOW}～${f.TR_ALT}\n路程規劃：${f.TR_TOUR}\n管理單位：${f.TR_ADMIN}\n洽詢電話：${f.TR_ADMIN_PHONE}\n最佳造訪期：${f.TR_BEST_SEASON}\n`
+              }, {
+                type: 'postback',
+                label: '點我看位置',
+                data: convert[0] + '\n' + convert[1]
+              }, {
+                type: 'uri',
+                label: '點我看連結',
+                uri: f.URL
+              }]
+            }]
           }
-        }
+        })
+        console.log(msg.length)
         console.log('抓到：' + f.TR_CNAME)
       }
     }
-
-    //   msg = `
-    // ${event.message.text}有${filterData.length}條路線\n
-    // 名稱：${filterData[0].TR_CNAME}\n
-    // 位置：${filterData[0].TR_POSITION}\n
-    // 簡介：${filterData[0].GUIDE_CONTENT}\n
-    // 網址：${filterData[0].URL}\n
-    // 入口：${filterData[0].TR_ENTRANCE[0].memo}\n
-    // 全長：${filterData[0].TR_LENGTH}\n
-    // 海拔：${filterData[0].TR_ALT_LOW}～${filterData[0].TR_ALT}\n
-    // 路程規劃：${filterData[0].TR_TOUR}\n
-    // 管理單位：${filterData[0].TR_ADMIN}\n
-    // 洽詢電話：${filterData[0].TR_ADMIN_PHONE}\n
-    // 最佳造訪期：${filterData[0].TR_BEST_SEASON}\n
-    // `
-
-    if (event.message.text === 'ha') {
-      msg = {
-        type: 'location',
-        title: '步道',
-        address: '南澳南溪產業道路11公里處',
-        longitude: 121.691964454609,
-        latitude: 24.4296390405548
-      }
-    }
-
-    // buttons 模板，最多可放四個label (按鈕)，不過是直式的
-    if (event.message.text === 'he') {
-      msg = {
-        type: 'template',
-        altText: '在不支援顯示樣板的地方顯示的文字',
-        template: {
-          type: 'buttons',
-          text: '標題文字',
-          actions: [
-            {
-              type: 'message',
-              label: '第一個按鈕',
-              text: '1'
-            },
-            {
-              type: 'message',
-              label: '第二個按鈕',
-              text: '2'
-            },
-            {
-              type: 'message',
-              label: '第三個按鈕',
-              text: '3'
-            },
-            {
-              type: 'message',
-              label: '第四個按鈕',
-              text: '4'
-            }
-          ]
-        }
-      }
-    }
   } catch (error) {
-    msg = '發生錯誤'
+    msg = `sorry「${event.message.text}」好像沒有資料喔`
+    console.log(error.type, error.message) // clg 錯誤類型和訊息
   }
   event.reply(msg)
+})
+
+// 當使用者點擊(點我看位置)按鈕
+bot.on('postback', event => {
+  const coordinate = event.postback.data.split('\n')
+  console.log(coordinate[0], coordinate[1]) // 經度 & 緯度
+  event.reply({
+    type: 'location',
+    title: '步道位置',
+    address: `${coordinate[0]}\n${coordinate[1]}`,
+    longitude: coordinate[0],
+    latitude: coordinate[1]
+  })
 })
 
 // 監聽機器人的port
