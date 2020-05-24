@@ -53,11 +53,12 @@ for (let i = 100; i <= 212; i++) {
 
 // 當使用者輸入訊息
 bot.on('message', async (event) => {
-  let msg = []
-  const data = await rp({ uri: 'https://recreation.forest.gov.tw/mis/api/BasicInfo/Trail', json: true }) // 從API 取資料
-  const filterData = filter(event.message.text, data) // filterData = filter 後的陣列，再選擇要印出filterData 的哪些東西
-  console.log(event.message.text)
+  let msg = ''
   try {
+    const data = await rp({ uri: 'https://recreation.forest.gov.tw/mis/api/BasicInfo/Trail', json: true }) // 從API 取資料
+    const filterData = filter(event.message.text, data) // filterData = filter 後的陣列，再選擇要印出filterData 的哪些東西
+    const columnArr = [] // 存column 用的
+    console.log(event.message.text)
     // if (event.message.type !== 'text') return  若使用者輸入非文字，不執行函式
     if (isNaN === true) msg = '請輸入關鍵字查詢喔' // 若使用者傳符號或數字
     if (event.message.type !== 'text') { // 若使用者傳貼圖
@@ -71,7 +72,43 @@ bot.on('message', async (event) => {
       for (const f of filterData) {
         if (f.TR_ENTRANCE[0].x === null || f.TR_ENTRANCE[0].y === null) continue // 跳過空值
         const convert = proj4(EPSG3826, EPSG4326, [f.TR_ENTRANCE[0].x, f.TR_ENTRANCE[0].y]) // 座標轉換
-        msg.push({ // for of 跑filterData 陣列，再push 進msg 陣列
+        const column = { // 每個column 都是一個步道
+          thumbnailImageUrl: imgUrl[f.TRAILID - 1],
+          title: f.TR_CNAME,
+          text: f.TR_POSITION,
+          actions: [{
+            type: 'message',
+            label: '點我看簡介',
+            text: `－${f.TR_CNAME}－\n\n入口：${f.TR_ENTRANCE[0].memo}\n全長：${f.TR_LENGTH}\n路況：${f.TR_PAVE}\n海拔：${f.TR_ALT_LOW}～${f.TR_ALT}\n路程規劃：${f.TR_TOUR}\n管理單位：${f.TR_ADMIN}\n洽詢電話：${f.TR_ADMIN_PHONE}\n最佳造訪期：${f.TR_BEST_SEASON}\n`
+          }, {
+            type: 'postback',
+            label: '點我看位置',
+            data: convert[0] + '\n' + convert[1]
+          }, {
+            type: 'uri',
+            label: '點我看連結',
+            uri: f.URL
+          }]
+        }
+        columnArr.push(column) // push 進columnArr 陣列
+        console.log('抓到：' + f.TR_CNAME)
+        console.log(columnArr.length)
+      }
+      if (columnArr.length > 10) { // 若回傳超過10 個步道
+        msg = `sorry「${event.message.text}」超過10筆資料，請縮小範圍喔`
+      } else {
+        msg = {
+          type: 'template',
+          altText: 'sorry 只能在手機上看到喔',
+          template: {
+            type: 'carousel', // carouesl 模板，最多放10 個column，actions 數量必須相同，最多放3 個
+            columns: columnArr
+          }
+        }
+      }
+    }
+
+    /* msg.push({ // for of 跑filterData 陣列，再push 進msg 陣列
           type: 'template',
           altText: 'sorry 只能在手機上看到喔',
           template: { // carouesl 模板，最多放10(or 5?) 個column，column 的actions 數量必須相同，最多放3 個
@@ -99,9 +136,7 @@ bot.on('message', async (event) => {
           }
         })
         console.log(msg.length)
-        console.log('抓到：' + f.TR_CNAME)
-      }
-    }
+        console.log('抓到：' + f.TR_CNAME) */
   } catch (error) {
     msg = `sorry「${event.message.text}」好像沒有資料喔`
     console.log(error.type, error.message) // clg 錯誤類型和訊息
