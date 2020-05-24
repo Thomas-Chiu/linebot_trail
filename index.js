@@ -65,7 +65,7 @@ bot.on('message', async (event) => {
       // 不知道為啥 msg = '請輸入關鍵字查詢喔' 跑不出來，clg(msg) 有，但line 沒訊息
       // console.log(msg)
     }
-    if (event.message.type !== 'text') { // 若使用者傳貼圖
+    if (event.message.type === 'sticker') { // 若使用者傳貼圖
       msg = {
         type: 'sticker',
         packageId: '1',
