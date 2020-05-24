@@ -60,7 +60,7 @@ bot.on('message', async (event) => {
     const columnArr = [] // 存column 用的
     console.log(event.message.text, event.message.type)
     // if (event.message.type !== 'text') return  若使用者輸入非文字，不執行函式
-    if (filterData.length === 0) { // 若使用者亂打字，如符號或數字，或沒有搜尋到資料
+    if (filterData.length === 0 && !event.message.text.includes('最佳造訪期：')) { // 若使用者亂打字，如符號或數字，或沒有搜尋到資料
       event.reply(`sorry「${event.message.text}」好像沒有資料喔`)
       // 不知道為啥 msg = '請輸入關鍵字查詢喔' 跑不出來，clg(msg) 有，但line 沒訊息
       // console.log(msg)
