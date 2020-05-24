@@ -10,8 +10,10 @@
 
 ### 使用說明
 1. 輸入關鍵字「縣市/ 鄉鎮區/ 步道名稱」查詢登山步道，如「新竹/ 尖石/ 霞喀羅」`「/」我是 or`
-![](https://i.imgur.com/kY6XCpx.png)![](https://i.imgur.com/sFwhEDs.png)![](https://i.imgur.com/7g6JbKG.png)
-    ==縣市小提醒：是「臺北、臺中、臺南、臺東」不是「台==
+![](https://i.imgur.com/kY6XCpx.png)
+![](https://i.imgur.com/sFwhEDs.png)
+![](https://i.imgur.com/7g6JbKG.png)
+==縣市小提醒：是「臺北、臺中、臺南、臺東」不是「台==
 
 2. 「點我看簡介」 => 步道資訊 
 ![](https://i.imgur.com/mNzgae0.png)
