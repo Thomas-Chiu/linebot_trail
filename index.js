@@ -1,7 +1,7 @@
 import linebot from 'linebot'
 import dotenv from 'dotenv'
 import rp from 'request-promise'
-import proj4 from 'proj4'
+import proj4 from 'proj4' // 座標轉換套件
 // ngrok authtoken 1b9lrgl1tsqi7SVmgWFH1CIjONc_7W9qky1kaudPv1r36PdBG
 // ngrok http 8080
 // p.s.使用者查詢要輸入「臺」北、中、南、東，不能用「台」
@@ -58,9 +58,13 @@ bot.on('message', async (event) => {
     const data = await rp({ uri: 'https://recreation.forest.gov.tw/mis/api/BasicInfo/Trail', json: true }) // 從API 取資料
     const filterData = filter(event.message.text, data) // filterData = filter 後的陣列，再選擇要印出filterData 的哪些東西
     const columnArr = [] // 存column 用的
-    console.log(event.message.text)
+    console.log(event.message.text, event.message.type)
     // if (event.message.type !== 'text') return  若使用者輸入非文字，不執行函式
-    if (isNaN === true) msg = '請輸入關鍵字查詢喔' // 若使用者傳符號或數字
+    if (event.message.type === 'text' && filterData.length === 0) { // 若使用者亂打字，如符號或數字，或沒有搜尋到資料
+      event.reply(`sorry「${event.message.text}」好像沒有資料喔`)
+      // 不知道為啥 msg = '請輸入關鍵字查詢喔' 跑不出來，clg(msg) 有，但line 沒訊息
+      // console.log(msg)
+    }
     if (event.message.type !== 'text') { // 若使用者傳貼圖
       msg = {
         type: 'sticker',
@@ -107,38 +111,7 @@ bot.on('message', async (event) => {
         }
       }
     }
-
-    /* msg.push({ // for of 跑filterData 陣列，再push 進msg 陣列
-          type: 'template',
-          altText: 'sorry 只能在手機上看到喔',
-          template: { // carouesl 模板，最多放10(or 5?) 個column，column 的actions 數量必須相同，最多放3 個
-            type: 'carousel',
-            imageAspectRatio: 'rectangle',
-            imageSize: 'contain',
-            columns: [{
-              thumbnailImageUrl: imgUrl[f.TRAILID - 1],
-              title: f.TR_CNAME,
-              text: f.TR_POSITION,
-              actions: [{
-                type: 'message',
-                label: '點我看簡介',
-                text: `－${f.TR_CNAME}－\n\n入口：${f.TR_ENTRANCE[0].memo}\n全長：${f.TR_LENGTH}\n路況：${f.TR_PAVE}\n海拔：${f.TR_ALT_LOW}～${f.TR_ALT}\n路程規劃：${f.TR_TOUR}\n管理單位：${f.TR_ADMIN}\n洽詢電話：${f.TR_ADMIN_PHONE}\n最佳造訪期：${f.TR_BEST_SEASON}\n`
-              }, {
-                type: 'postback',
-                label: '點我看位置',
-                data: convert[0] + '\n' + convert[1]
-              }, {
-                type: 'uri',
-                label: '點我看連結',
-                uri: f.URL
-              }]
-            }]
-          }
-        })
-        console.log(msg.length)
-        console.log('抓到：' + f.TR_CNAME) */
   } catch (error) {
-    msg = `sorry「${event.message.text}」好像沒有資料喔`
     console.log(error.type, error.message) // clg 錯誤類型和訊息
   }
   event.reply(msg)
